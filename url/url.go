@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	_ "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 func For(ctx context.Context, client *sqs.Client, id string) (queueURL *url.URL, err error) {
