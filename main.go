@@ -32,17 +32,6 @@ func send(ctx context.Context, client *sqs.Client, queueURL fmt.Stringer, reader
 	return err
 }
 
-// Features:
-// - timeout
-// - repeat
-// - delay between timeouts
-// - parallel
-// - send file contents
-// - send multiple file contents
-// - generate fake data (of size)
-// - support FIFO queues
-// - run systemd-analyze blame
-
 func urlFor(ctx context.Context, client *sqs.Client, id string) (queueURL *url.URL, err error) {
 	if len(id) == 0 {
 		return nil, fmt.Errorf("empty identifier")
