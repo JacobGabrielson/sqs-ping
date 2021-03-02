@@ -1,6 +1,6 @@
 .PHONY: vet
 
-sqs-ping: main.go url/url.go
+sqs-ping: main.go 
 	go build
 
 vet:
