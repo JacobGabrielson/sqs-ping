@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/JacobGabrielson/sqs-ping/url"
 
@@ -41,8 +43,25 @@ func send(ctx context.Context, client *sqs.Client, queueURL fmt.Stringer, reader
 // - support FIFO queues
 
 func main() {
-	//flag.String("region", "", "AWS region (defaults to local region)") // TODO: impl
+	var in io.Reader
+	var err error
+
+	fileName := flag.String("f", "", "file to send")
 	flag.Parse()
+
+	switch *fileName {
+	case "":
+		in = strings.NewReader(time.Now().Format(time.RFC1123Z))
+	case "-":
+		in = os.Stdin
+	default:
+		inFile, err := os.Open(*fileName)
+		if err != nil {
+			log.Fatalf("unable to open file '%s': %v", *fileName, err)
+		}
+		defer inFile.Close()
+		in = inFile
+	}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
@@ -54,7 +73,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("unable to find queue URL for '%s': %v", queueId, err)
 	}
-	if err = send(context.TODO(), sqsClient, queueURL, os.Stdin); err != nil {
+	if err = send(context.TODO(), sqsClient, queueURL, in); err != nil {
 		log.Fatalf("unable to send message: %v", err)
 	}
 }
