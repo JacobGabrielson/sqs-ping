@@ -1,17 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
-	"strings"
 	"time"
-
-	"github.com/JacobGabrielson/sqs-ping/url"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -41,6 +41,29 @@ func send(ctx context.Context, client *sqs.Client, queueURL fmt.Stringer, reader
 // - send multiple file contents
 // - generate fake data (of size)
 // - support FIFO queues
+// - run systemd-analyze blame
+
+func urlFor(ctx context.Context, client *sqs.Client, id string) (queueURL *url.URL, err error) {
+	if len(id) == 0 {
+		return nil, fmt.Errorf("empty identifier")
+	}
+	if queueURL, err = url.Parse(id); err != nil {
+		return
+	}
+	var out *sqs.GetQueueUrlOutput
+	if out, err = client.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
+		QueueName: aws.String(id),
+	}); err != nil {
+		return
+	}
+	rawurl := out.QueueUrl
+	return url.Parse(*rawurl)
+}
+
+type localStatus struct {
+	Hostname  string
+	Timestamp string
+}
 
 func main() {
 	var in io.Reader
@@ -51,7 +74,18 @@ func main() {
 
 	switch *fileName {
 	case "":
-		in = strings.NewReader(time.Now().Format(time.RFC1123Z))
+		hostname, err := os.Hostname()
+		if err != nil {
+			hostname = fmt.Sprintf("unknown (%s)", err.Error())
+		}
+		bs, err := json.MarshalIndent(localStatus{
+			Hostname:  hostname,
+			Timestamp: time.Now().Format(time.RFC1123Z),
+		}, "", "  ")
+		if err != nil {
+			log.Fatalf("creating info %v", err)
+		}
+		in = bytes.NewReader(bs)
 	case "-":
 		in = os.Stdin
 	default:
@@ -69,7 +103,7 @@ func main() {
 	}
 	sqsClient := sqs.NewFromConfig(cfg)
 	queueId := flag.Arg(0)
-	queueURL, err := url.For(context.TODO(), sqsClient, queueId)
+	queueURL, err := urlFor(context.TODO(), sqsClient, queueId)
 	if err != nil {
 		log.Fatalf("unable to find queue URL for '%s': %v", queueId, err)
 	}
