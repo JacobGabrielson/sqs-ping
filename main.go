@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	_ "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 func send(ctx context.Context, client *sqs.Client, queueURL fmt.Stringer, reader io.Reader) error {
