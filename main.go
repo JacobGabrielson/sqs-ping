@@ -58,6 +58,8 @@ func main() {
 	var err error
 
 	fileName := flag.String("f", "", "file to send")
+	count := flag.Int("c", 1, "send the message this many times")
+	interval := flag.Duration("i", time.Millisecond*200, "seconds to wait between sends")
 	flag.Parse()
 
 	switch *fileName {
@@ -95,7 +97,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("unable to find queue URL for '%s': %v", queueId, err)
 	}
-	if err = send(context.TODO(), sqsClient, queueURL, in); err != nil {
-		log.Fatalf("unable to send message: %v", err)
+	for i := 0; i < *count; i++ {
+		if err = send(context.TODO(), sqsClient, queueURL, in); err != nil {
+			log.Fatalf("unable to send message: %v", err)
+		}
+		if i > 0 && i < (*count-1) {
+			time.Sleep(*interval)
+		}
 	}
 }
