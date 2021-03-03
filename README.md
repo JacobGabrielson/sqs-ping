@@ -37,7 +37,7 @@ sqs-ping [options] <queue>
   containing the hostname and time of day on that host.
 * If `-file` is set to `-` then stdin will be read.
 
-### Example
+### Examples
 
 #### Send default ping 5 times
 
@@ -57,7 +57,7 @@ SendMessage](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReferen
 #### Send output of systemd-analzye blame
 
 ```
-$ sqs-ping -command "systemd-analyze blame" jacob-demo-queue
+$ sqs-ping -command "systemd-analyze blame" demo-queue
 11288 bytes to https://sqs.us-west-2.amazonaws.com/123456789012/demo-queue: time=395 ms
 ```
 
