@@ -13,7 +13,7 @@ make
 ## Usage
 
 ```
-Usage of ./sqs-ping:
+sqs-ping [options] <queue>:
   -c int
     	send the message this many times (default 1)
   -f string
@@ -23,6 +23,8 @@ Usage of ./sqs-ping:
   -region string
     	AWS region (default "local")
 ```
+
+`<queue>` can either be the name of the queue or its URL.
 
 If `-file` is not specified, then a JSON blob will be sent containing
 the hostname and time of day on that host. 
