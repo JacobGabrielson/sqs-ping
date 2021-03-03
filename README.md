@@ -16,7 +16,9 @@ make
 sqs-ping [options] <queue>
 ```
 
-Options include:
+* `<queue>` can either be the name of the queue or its URL.
+
+### Options
 
 ```
   -c int
@@ -29,7 +31,6 @@ Options include:
     	AWS region (default "local")
 ```
 
-* `<queue>` can either be the name of the queue or its URL.
 * If `-file` is not specified, then a JSON blob will be sent
   containing the hostname and time of day on that host.
 * If `-file` is set to `-` then stdin will be read.
@@ -37,7 +38,7 @@ Options include:
 ### Example
 
 ```
-./sqs-ping -region eu-north-1 -c 5 demo-queue
+$ sqs-ping -region eu-north-1 -c 5 demo-queue
 100 bytes to https://sqs.eu-north-1.amazonaws.com/123456789012/demo-queue: time=206 ms
 100 bytes to https://sqs.eu-north-1.amazonaws.com/123456789012/demo-queue: time=205 ms
 100 bytes to https://sqs.eu-north-1.amazonaws.com/123456789012/demo-queue: time=206 ms
