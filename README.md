@@ -65,7 +65,7 @@ The message sent will include the following JSON that looks something
 like this (`\n` converted to actual newline, and output truncated with
 `...` for readability):
 
-```javascript
+```
 {
   "Hostname": "labrador.example.com",
   "Timestamp": "Wed, 03 Mar 2021 09:13:39 -0800",
