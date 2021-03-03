@@ -68,6 +68,26 @@ func infoProvider() io.Reader {
 	return bytes.NewReader(bs)
 }
 
+func stdinProvider() func() io.Reader {
+	bs, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		log.Fatalf("unable to read from stdin: %v", err)
+	}
+	return func() io.Reader {
+		return bytes.NewReader(bs)
+	}
+}
+
+func fileProvider(fileName string) func() io.Reader {
+	bs, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		log.Fatalf("unable to read file '%s': %v", fileName, err)
+	}
+	return func() io.Reader {
+		return bytes.NewReader(bs)
+	}
+}
+
 func main() {
 	var in func() io.Reader
 	var err error
@@ -82,15 +102,9 @@ func main() {
 	case "":
 		in = infoProvider
 	case "-":
-		in = func() io.Reader { return os.Stdin }
+		in = stdinProvider()
 	default:
-		bs, err := ioutil.ReadFile(*fileName)
-		if err != nil {
-			log.Fatalf("unable to read file '%s': %v", *fileName, err)
-		}
-		in = func() io.Reader {
-			return bytes.NewReader(bs)
-		}
+		in = fileProvider(*fileName)
 	}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(), func(c *config.LoadOptions) error {
