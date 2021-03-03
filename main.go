@@ -15,6 +15,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
@@ -89,6 +90,21 @@ func fileProvider(fileName string) func() io.Reader {
 	}
 }
 
+// On EC2 instances this will return the default (local) region; on
+// other servers will have no effect.
+func imdsRegion(ctx context.Context) *string {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil
+	}
+	client := imds.NewFromConfig(cfg)
+	region, err := client.GetRegion(ctx, &imds.GetRegionInput{})
+	if err != nil {
+		return nil
+	}
+	return &region.Region
+}
+
 func main() {
 	var in func() io.Reader
 	var err error
@@ -111,6 +127,11 @@ func main() {
 	cfg, err := config.LoadDefaultConfig(context.TODO(), func(c *config.LoadOptions) error {
 		if *region != "local" {
 			c.Region = *region
+		} else {
+			localRegion := imdsRegion(context.TODO())
+			if localRegion != nil {
+				c.Region = *localRegion
+			}
 		}
 		return nil
 	})
