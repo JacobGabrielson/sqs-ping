@@ -24,6 +24,11 @@ Usage of ./sqs-ping:
     	AWS region (default "local")
 ```
 
+If `-file` is not specified, then a JSON blob will be sent containing
+the hostname and time of day on that host. 
+
+If `-file` is set to `-` then stdin will be read.
+
 ## License
 
 This code is licensed under the [Apache License 2.0](LICENSE.txt).
