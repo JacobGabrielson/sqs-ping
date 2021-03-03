@@ -18,17 +18,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
-func send(ctx context.Context, client *sqs.Client, queueURL fmt.Stringer, reader io.Reader) error {
-	bs, err := ioutil.ReadAll(reader)
+func send(ctx context.Context, client *sqs.Client, queueURL fmt.Stringer, reader func() io.Reader) (int, error) {
+	bs, err := ioutil.ReadAll(reader())
 	if err != nil {
-		return err
+		return 0, err
 	}
 	_, err = client.SendMessage(ctx, &sqs.SendMessageInput{
 		MessageBody:  aws.String(string(bs)),
 		QueueUrl:     aws.String(queueURL.String()),
 		DelaySeconds: 0,
 	})
-	return err
+	return len(bs), err
 }
 
 func urlFor(ctx context.Context, client *sqs.Client, id string) (queueURL *url.URL, err error) {
@@ -53,8 +53,23 @@ type localStatus struct {
 	Timestamp string
 }
 
+func infoProvider() io.Reader {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = fmt.Sprintf("unknown (%s)", err.Error())
+	}
+	bs, err := json.MarshalIndent(localStatus{
+		Hostname:  hostname,
+		Timestamp: time.Now().Format(time.RFC1123Z),
+	}, "", "  ")
+	if err != nil {
+		log.Fatalf("creating info %v", err)
+	}
+	return bytes.NewReader(bs)
+}
+
 func main() {
-	var in io.Reader
+	var in func() io.Reader
 	var err error
 
 	fileName := flag.String("f", "", "file to send")
@@ -64,27 +79,17 @@ func main() {
 
 	switch *fileName {
 	case "":
-		hostname, err := os.Hostname()
-		if err != nil {
-			hostname = fmt.Sprintf("unknown (%s)", err.Error())
-		}
-		bs, err := json.MarshalIndent(localStatus{
-			Hostname:  hostname,
-			Timestamp: time.Now().Format(time.RFC1123Z),
-		}, "", "  ")
-		if err != nil {
-			log.Fatalf("creating info %v", err)
-		}
-		in = bytes.NewReader(bs)
+		in = infoProvider
 	case "-":
-		in = os.Stdin
+		in = func() io.Reader { return os.Stdin }
 	default:
-		inFile, err := os.Open(*fileName)
+		bs, err := ioutil.ReadFile(*fileName)
 		if err != nil {
-			log.Fatalf("unable to open file '%s': %v", *fileName, err)
+			log.Fatalf("unable to read file '%s': %v", *fileName, err)
 		}
-		defer inFile.Close()
-		in = inFile
+		in = func() io.Reader {
+			return bytes.NewReader(bs)
+		}
 	}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
@@ -98,9 +103,13 @@ func main() {
 		log.Fatalf("unable to find queue URL for '%s': %v", queueId, err)
 	}
 	for i := 0; i < *count; i++ {
-		if err = send(context.TODO(), sqsClient, queueURL, in); err != nil {
+		start := time.Now()
+		var sentBytes int
+		if sentBytes, err = send(context.TODO(), sqsClient, queueURL, in); err != nil {
 			log.Fatalf("unable to send message: %v", err)
 		}
+		diff := time.Now().Sub(start)
+		fmt.Printf("%d bytes: time=%d ms\n", sentBytes, diff.Milliseconds())
 		if i > 0 && i < (*count-1) {
 			time.Sleep(*interval)
 		}
