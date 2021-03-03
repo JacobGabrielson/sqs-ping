@@ -109,7 +109,7 @@ func main() {
 			log.Fatalf("unable to send message: %v", err)
 		}
 		diff := time.Now().Sub(start)
-		fmt.Printf("%d bytes: time=%d ms\n", sentBytes, diff.Milliseconds())
+		fmt.Printf("%d bytes to %s: time=%d ms\n", sentBytes, queueURL, diff.Milliseconds())
 		if i > 0 && i < (*count-1) {
 			time.Sleep(*interval)
 		}
