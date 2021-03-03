@@ -40,8 +40,8 @@ If `-file` is set to `-` then stdin will be read.
 100 bytes to https://sqs.eu-north-1.amazonaws.com/123456789012/demo-queue: time=203 ms
 ```
 
-(Note the bytes is only reflective of the SQS message size and does
-not include HTTP headers or other arguments to [SQS
+(Note the bytes is only reflective of the SQS `MessageBody` size and
+does not include HTTP headers or other arguments to [SQS
 SendMessage](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html)).
 
 ## License
