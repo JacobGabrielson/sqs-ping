@@ -71,11 +71,10 @@ like this (`\n` converted to actual newline, and output truncated with
   "Timestamp": "Wed, 03 Mar 2021 09:13:39 -0800",
   "Command": "systemd-analyze blame",
   "ExecError": "",
-  "Stdout": "10.804s plymouth-quit-wait.service
-10.014s acmeguardiand.service
+  "Stdout": "10.804s alsatian.service
+10.014s blah.service
  8.310s NetworkManager-wait-online.service
  3.618s docker.service
- 1.846s apt-daily-upgrade.service
  1.585s postfix@-.service
   866ms ufw.service
   827ms fwupd-refresh.service
