@@ -75,6 +75,7 @@ func main() {
 	fileName := flag.String("f", "", "file to send")
 	count := flag.Int("c", 1, "send the message this many times")
 	interval := flag.Duration("i", time.Millisecond*200, "seconds to wait between sends")
+	region := flag.String("region", "local", "AWS region")
 	flag.Parse()
 
 	switch *fileName {
@@ -92,7 +93,12 @@ func main() {
 		}
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := config.LoadDefaultConfig(context.TODO(), func(c *config.LoadOptions) error {
+		if *region != "local" {
+			c.Region = *region
+		}
+		return nil
+	})
 	if err != nil {
 		log.Fatalf("unable to load AWS configuration, %v", err)
 	}
