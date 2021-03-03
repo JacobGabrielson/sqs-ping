@@ -3,6 +3,9 @@
 sqs-ping: main.go 
 	go build
 
-vet:
+verify:
+	go mod download
+	go mod tidy
+	go fmt ./...
 	go vet ./...
 
