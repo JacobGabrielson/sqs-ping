@@ -60,9 +60,11 @@ type localStatus struct {
 	ExecError string
 	Stdout    string
 	Stderr    string
+	Count     int
 }
 
 func infoProvider(command string) func() io.Reader {
+	var count int
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = fmt.Sprintf("unknown (%s)", err.Error())
@@ -71,7 +73,9 @@ func infoProvider(command string) func() io.Reader {
 		var status = localStatus{
 			Hostname:  hostname,
 			Timestamp: time.Now().Format(time.RFC1123Z),
+			Count:     count,
 		}
+		count++
 		if command != "" {
 			status.Command = command
 			args, err := shlex.Split(command)
