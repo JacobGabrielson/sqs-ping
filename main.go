@@ -11,7 +11,10 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"os/exec"
 	"time"
+
+	"github.com/google/shlex"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -19,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
-func send(ctx context.Context, client *sqs.Client, queueURL fmt.Stringer, reader func() io.Reader) (int, error) {
+func send(ctx context.Context, client *sqs.Client, queueURL *url.URL, reader func() io.Reader) (int, error) {
 	bs, err := ioutil.ReadAll(reader())
 	if err != nil {
 		return 0, err
@@ -53,21 +56,51 @@ func urlFor(ctx context.Context, client *sqs.Client, id string) (queueURL *url.U
 type localStatus struct {
 	Hostname  string
 	Timestamp string
+	Command   string
+	ExecError string
+	Stdout    string
+	Stderr    string
 }
 
-func infoProvider() io.Reader {
+func infoProvider(command string) func() io.Reader {
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = fmt.Sprintf("unknown (%s)", err.Error())
 	}
-	bs, err := json.MarshalIndent(localStatus{
-		Hostname:  hostname,
-		Timestamp: time.Now().Format(time.RFC1123Z),
-	}, "", "  ")
-	if err != nil {
-		log.Fatalf("creating info %v", err)
+	return func() io.Reader {
+		var status = localStatus{
+			Hostname:  hostname,
+			Timestamp: time.Now().Format(time.RFC1123Z),
+		}
+		if command != "" {
+			status.Command = command
+			args, err := shlex.Split(command)
+			if err != nil {
+				status.ExecError = fmt.Sprintf("unable to parse command line: %v", err)
+			}
+			cmd := exec.Command(args[0], args[1:]...)
+			devnull, err := os.Open(os.DevNull)
+			if err != nil {
+				status.ExecError = fmt.Sprintf("unable to open %s: %v", os.DevNull, err)
+			}
+			defer devnull.Close()
+			cmd.Stdin = devnull
+			var stdout, stderr bytes.Buffer
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+			if err := cmd.Run(); err != nil {
+				status.ExecError = fmt.Sprintf("unable to exec: %v", err)
+			} else {
+				status.Stdout = string(stdout.Bytes())
+				status.Stderr = string(stderr.Bytes())
+			}
+		}
+		bs, err := json.MarshalIndent(status, "", "  ")
+		if err != nil {
+			log.Fatalf("creating info %v", err)
+		}
+		return bytes.NewReader(bs)
 	}
-	return bytes.NewReader(bs)
 }
 
 func stdinProvider() func() io.Reader {
@@ -113,22 +146,28 @@ func main() {
 	count := flag.Int("c", 1, "send the message this many times")
 	interval := flag.Duration("i", time.Millisecond*200, "how long to wait between sends")
 	region := flag.String("region", "local", "AWS region")
+	command := flag.String("command", "", "command to run")
 	flag.Parse()
+
+	if *fileName != "" && *command != "" {
+		log.Fatalf("cannot specify both -command and -f flags")
+	}
 
 	switch *fileName {
 	case "":
-		in = infoProvider
+		in = infoProvider(*command)
 	case "-":
 		in = stdinProvider()
 	default:
 		in = fileProvider(*fileName)
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), func(c *config.LoadOptions) error {
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, func(c *config.LoadOptions) error {
 		if *region != "local" {
 			c.Region = *region
 		} else {
-			localRegion := imdsRegion(context.TODO())
+			localRegion := imdsRegion(ctx)
 			if localRegion != nil {
 				c.Region = *localRegion
 			}
@@ -140,14 +179,14 @@ func main() {
 	}
 	sqsClient := sqs.NewFromConfig(cfg)
 	queueId := flag.Arg(0)
-	queueURL, err := urlFor(context.TODO(), sqsClient, queueId)
+	queueURL, err := urlFor(ctx, sqsClient, queueId)
 	if err != nil {
 		log.Fatalf("unable to find queue URL for '%s': %v", queueId, err)
 	}
 	for i := 0; i < *count; i++ {
 		start := time.Now()
 		var sentBytes int
-		if sentBytes, err = send(context.TODO(), sqsClient, queueURL, in); err != nil {
+		if sentBytes, err = send(ctx, sqsClient, queueURL, in); err != nil {
 			log.Fatalf("unable to send message: %v", err)
 		}
 		diff := time.Now().Sub(start)

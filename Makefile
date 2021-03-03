@@ -1,4 +1,4 @@
-.PHONY: vet
+.PHONY: verify
 
 sqs-ping: main.go 
 	go build
