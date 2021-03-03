@@ -111,7 +111,7 @@ func main() {
 
 	fileName := flag.String("f", "", "file to send")
 	count := flag.Int("c", 1, "send the message this many times")
-	interval := flag.Duration("i", time.Millisecond*200, "seconds to wait between sends")
+	interval := flag.Duration("i", time.Millisecond*200, "how long to wait between sends")
 	region := flag.String("region", "local", "AWS region")
 	flag.Parse()
 
@@ -152,7 +152,7 @@ func main() {
 		}
 		diff := time.Now().Sub(start)
 		fmt.Printf("%d bytes to %s: time=%d ms\n", sentBytes, queueURL, diff.Milliseconds())
-		if i > 0 && i < (*count-1) {
+		if i < (*count - 1) {
 			time.Sleep(*interval)
 		}
 	}
