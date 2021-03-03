@@ -35,7 +35,7 @@ func urlFor(ctx context.Context, client *sqs.Client, id string) (queueURL *url.U
 	if len(id) == 0 {
 		return nil, fmt.Errorf("empty identifier")
 	}
-	if queueURL, err = url.Parse(id); err != nil {
+	if queueURL, err = url.Parse(id); err == nil {
 		return
 	}
 	var out *sqs.GetQueueUrlOutput
