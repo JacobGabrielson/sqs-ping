@@ -37,7 +37,7 @@ func send(ctx context.Context, client *sqs.Client, queueURL *url.URL, reader fun
 
 func urlFor(ctx context.Context, client *sqs.Client, id string) (queueURL *url.URL, err error) {
 	if len(id) == 0 {
-		return nil, fmt.Errorf("empty identifier")
+		return nil, fmt.Errorf("empty SQS identifier")
 	}
 	queueURL, err = url.Parse(id)
 	if err == nil && queueURL.IsAbs() {
@@ -49,8 +49,7 @@ func urlFor(ctx context.Context, client *sqs.Client, id string) (queueURL *url.U
 	}); err != nil {
 		return
 	}
-	rawurl := out.QueueUrl
-	return url.Parse(*rawurl)
+	return url.Parse(*out.QueueUrl)
 }
 
 type localStatus struct {
@@ -170,11 +169,8 @@ func main() {
 	cfg, err := config.LoadDefaultConfig(ctx, func(c *config.LoadOptions) error {
 		if *region != "local" {
 			c.Region = *region
-		} else {
-			localRegion := imdsRegion(ctx)
-			if localRegion != nil {
-				c.Region = *localRegion
-			}
+		} else if localRegion := imdsRegion(ctx); localRegion != nil {
+			c.Region = *localRegion
 		}
 		return nil
 	})
