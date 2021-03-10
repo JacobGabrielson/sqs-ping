@@ -54,7 +54,7 @@ $ sqs-ping -region eu-north-1 -c 5 demo-queue
 does not include HTTP headers or other arguments to [SQS
 SendMessage](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html)).
 
-#### Send output of systemd-analzye blame
+#### Send output of systemd-analyze blame
 
 ```
 $ sqs-ping -command "systemd-analyze blame" demo-queue
