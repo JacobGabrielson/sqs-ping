@@ -75,34 +75,41 @@ func infoProvider(command string) func() io.Reader {
 			Count:     count,
 		}
 		count++
-		if command != "" {
-			status.Command = command
-			args, err := shlex.Split(command)
-			if err != nil {
-				status.ExecError = fmt.Sprintf("unable to parse command line: %v", err)
-			}
-			cmd := exec.Command(args[0], args[1:]...)
-			devnull, err := os.Open(os.DevNull)
-			if err != nil {
-				status.ExecError = fmt.Sprintf("unable to open %s: %v", os.DevNull, err)
-			}
-			defer devnull.Close()
-			cmd.Stdin = devnull
-			var stdout, stderr bytes.Buffer
-			cmd.Stdout = &stdout
-			cmd.Stderr = &stderr
-			if err := cmd.Run(); err != nil {
-				status.ExecError = fmt.Sprintf("unable to exec: %v", err)
-			} else {
-				status.Stdout = string(stdout.Bytes())
-				status.Stderr = string(stderr.Bytes())
-			}
-		}
+		runCommand(command, &status)
 		bs, err := json.MarshalIndent(status, "", "  ")
 		if err != nil {
 			log.Fatalf("creating info %v", err)
 		}
 		return bytes.NewReader(bs)
+	}
+}
+
+func runCommand(command string, status *localStatus) {
+	if command == "" {
+		return
+	}
+	status.Command = command
+	args, err := shlex.Split(command)
+	if err != nil {
+		status.ExecError = fmt.Sprintf("unable to parse command line: %v", err)
+		return
+	}
+	cmd := exec.Command(args[0], args[1:]...)
+	devnull, err := os.Open(os.DevNull)
+	if err != nil {
+		status.ExecError = fmt.Sprintf("unable to open %s: %v", os.DevNull, err)
+		return
+	}
+	defer devnull.Close()
+	cmd.Stdin = devnull
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		status.ExecError = fmt.Sprintf("unable to exec: %v", err)
+	} else {
+		status.Stdout = string(stdout.Bytes())
+		status.Stderr = string(stderr.Bytes())
 	}
 }
 
